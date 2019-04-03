@@ -16,8 +16,8 @@ static WiFiClientSecure sslClient; // for ESP8266
 
 static int interval = 2000;
 bool temperatureAlert= false;
-const char* ssid     = "Sahil Vabhiav";
-const char* password = "24041990";
+const char* ssid     = "Enter SSID";
+const char* password = "Enter Pass";
 
 // Data upload timer will run for the interval of 20s
 unsigned long msg_Interval = 120000;
@@ -26,7 +26,7 @@ unsigned long msg_Timer = 0;
 /*String containing Hostname, Device Id & Device Key in the format:                         */
 /*  "HostName=<host_name>;DeviceId=<device_id>;SharedAccessKey=<device_key>"                */
 /*  "HostName=<host_name>;DeviceId=<device_id>;SharedAccessSignature=<device_sas_token>"    */
-static const char* connectionString = "HostName=ncdio.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=ezIriOfg84+GDq+2eYAvqKbtJw51UtHMByXOYHtX0iY=";
+static const char* connectionString = "Enter Conn String";
 
 //Create a char variable to store our JSON format
 const char *messageData = "{\"deviceId\":\"%s\", \"messageId\":%d, \"Random\":%d}";
