@@ -11,25 +11,26 @@
 
 #define MESSAGE_MAX_LEN 256
 
+ 
 
 static WiFiClientSecure sslClient; // for ESP8266
 
 static int interval = 2000;
 bool temperatureAlert= false;
 const char* ssid     = "Enter SSID";
-const char* password = "Enter Pass";
+const char* password = "Enter Password";
 
 // Data upload timer will run for the interval of 20s
-unsigned long msg_Interval = 120000;
+unsigned long msg_Interval = 30000;
 unsigned long msg_Timer = 0;
 
+static int myMessage = 0;
 /*String containing Hostname, Device Id & Device Key in the format:                         */
 /*  "HostName=<host_name>;DeviceId=<device_id>;SharedAccessKey=<device_key>"                */
 /*  "HostName=<host_name>;DeviceId=<device_id>;SharedAccessSignature=<device_sas_token>"    */
-static const char* connectionString = "Enter Conn String";
-
+static  char *connectionString = "Enter the Connection String"
 //Create a char variable to store our JSON format
-const char *messageData = "{\"deviceId\":\"%s\", \"messageId\":%d, \"Random\":%d}";
+const char *messageData = "{\"deviceId\":\"%s\",\"messageId\":%d,\"Random\":%d}";
 
 const char *onSuccess = "\"Successfully invoke device method\"";
 const char *notFound = "\"No method found\"";
@@ -63,7 +64,7 @@ void initWifi()
         WiFi.macAddress(mac);
         Serial.printf("You device with MAC address %02x:%02x:%02x:%02x:%02x:%02x connects to %s failed! Waiting 10 seconds to retry.\r\n",
                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], ssid);
-        delay(5000);
+        delay(500);
     }
     Serial.printf("Connected to wifi %s.\r\n", ssid);
 }
@@ -109,11 +110,11 @@ void setup()
 
     // initIoThubClient();
     iotHubClientHandle = IoTHubClient_LL_CreateFromConnectionString(connectionString, MQTT_Protocol);
-    if (iotHubClientHandle == NULL)
+    while(iotHubClientHandle == NULL)
     {
         Serial.println("Failed on IoTHubClient_CreateFromConnectionString.");
         delay(2000);
-        while (1);
+        //while (1);
     }
 
     IoTHubClient_LL_SetOption(iotHubClientHandle, "product_info", "ESP8266");
@@ -129,13 +130,18 @@ void loop()
         if(millis()-msg_Timer >= msg_Interval){
         msg_Timer = millis();
         int randomNum = random(0,50);
+        if(randomNum> 10){
+           temperatureAlert =true;
+          }else{
+            temperatureAlert =true;
+           }
         char messagePayload[MESSAGE_MAX_LEN];
         snprintf(messagePayload,MESSAGE_MAX_LEN,messageData,DEVICE_ID,messageCount++,randomNum);
         sendMessage(iotHubClientHandle, messagePayload, temperatureAlert);
+     }
     }
     IoTHubClient_LL_DoWork(iotHubClientHandle);
     delay(10);
-    }
 }
 
 
@@ -261,14 +267,19 @@ void twinCallback(DEVICE_TWIN_UPDATE_STATE updateState,const unsigned char *payL
         return;
     }
 
-    if (root["desired"]["interval"].success())
+    if (root["properties"]["reported"].success())
     {
-        interval = root["desired"]["interval"];
-    }
-    else if (root.containsKey("interval"))
+      
+       Serial.println("device twin Reported");
+        //interval = root["desired"]["interval"];
+        root["messageId"] = myMessage++;    
+    }    
+    
+    if (root["properties"]["desired"].success())
     {
-        interval = root["interval"];
+       String statusData = root["version"];
+       Serial.println(statusData);
     }
+    
     free(temp);
 }
-
