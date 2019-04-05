@@ -265,6 +265,7 @@ void twinCallback(DEVICE_TWIN_UPDATE_STATE updateState,const unsigned char *payL
     {
         messageId = root["desired"]["messageId"];  // add "messageId":0 to the desired json 
         Serial.printf("device Twins updated with mesageId %d \n", messageId);
+        Serial.println();
     }
     else if (root.containsKey("messageId"))
     {
