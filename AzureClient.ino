@@ -7,29 +7,31 @@
 #include <AzureIoTProtocol_MQTT.h>
 #include <AzureIoTUtility.h>
 
-#define DEVICE_ID "Enter Device ID"
+#define DEVICE_ID "EnterDeviceID"
 
 #define MESSAGE_MAX_LEN 256
-
 
 static WiFiClientSecure sslClient; // for ESP8266
 
 static int interval = 2000;
 bool temperatureAlert= false;
-const char* ssid     = "Enter SSID here";
-const char* password = "Enter Pass key here";
+const char* ssid     = "Enter SSID";
+const char* password = "Enter PassKey";
 
 // Data upload timer will run for the interval of 20s
 unsigned long msg_Interval = 30000;
 unsigned long msg_Timer = 0;
-static int messageId;
 
+String messageId;
 /*String containing Hostname, Device Id & Device Key in the format:                         */
 /*  "HostName=<host_name>;DeviceId=<device_id>;SharedAccessKey=<device_key>"                */
 /*  "HostName=<host_name>;DeviceId=<device_id>;SharedAccessSignature=<device_sas_token>"    */
-static const char* connectionString = "Enter connection String"
+static  char *connectionString = "Enter Connection String";
+
 //Create a char variable to store our JSON format
-const char *messageData = "{\"deviceId\":\"%s\", \"messageId\":%d, \"Random\":%d}";
+const char *messageData = "{\"deviceId\":\"%s\",\"messageId\":%d,\"Random\":%d}";
+const char *reportedData = "{\"deviceId\":\"%s\",\"Random\":%d}";
+
 
 const char *onSuccess = "\"Successfully invoke device method\"";
 const char *notFound = "\"No method found\"";
@@ -61,9 +63,9 @@ void initWifi()
         // start from mac[0] to mac[5], but some other kinds of board run in the oppsite direction.
         uint8_t mac[6];
         WiFi.macAddress(mac);
-        Serial.printf("You device with MAC address %02x:%02x:%02x:%02x:%02x:%02x connects to %s",
+        Serial.printf("You device with MAC address %02x:%02x:%02x:%02x:%02x:%02x connects to %s \n",
                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], ssid);
-        delay(5000);
+        delay(500);
     }
     Serial.printf("Connected to wifi %s.\r\n", ssid);
 }
@@ -113,6 +115,7 @@ void setup()
     {
         Serial.println("Failed on IoTHubClient_CreateFromConnectionString.");
         delay(2000);
+        //while (1);
     }
 
     IoTHubClient_LL_SetOption(iotHubClientHandle, "product_info", "ESP8266");
@@ -128,10 +131,20 @@ void loop()
         if(millis()-msg_Timer >= msg_Interval){
         msg_Timer = millis();
         int randomNum = random(0,50);
+        if(randomNum> 10){
+           temperatureAlert =true;
+          }else{
+            temperatureAlert =true;
+           }
         char messagePayload[MESSAGE_MAX_LEN];
+        char reportedPayload[MESSAGE_MAX_LEN];
         snprintf(messagePayload,MESSAGE_MAX_LEN,messageData,DEVICE_ID,messageCount++,randomNum);
+        sprintf(reportedPayload,reportedData,DEVICE_ID,randomNum);
+        size_t reportedSize = strlen(reportedPayload);
+        Serial.println(reportedPayload);
         sendMessage(iotHubClientHandle, messagePayload, temperatureAlert);
-    }
+        IoTHubClient_LL_SendReportedState(iotHubClientHandle,(const unsigned char*)reportedPayload,reportedSize,deviceReportCallback,NULL);
+     }
     }
     IoTHubClient_LL_DoWork(iotHubClientHandle);
     delay(10);
@@ -248,6 +261,8 @@ void twinCallback(DEVICE_TWIN_UPDATE_STATE updateState,const unsigned char *payL
 {
     StaticJsonBuffer<MESSAGE_MAX_LEN> jsonBuffer;
     StaticJsonBuffer<MESSAGE_MAX_LEN> jsonBuff;
+    /*printf("Device Twin update received (state=%s, size=%u): \r\n", 
+    ENUM_TO_STRING(DEVICE_TWIN_UPDATE_STATE, update_state), size);*/
     char *temp = (char *)malloc(size + 1);
     for (int i = 0; i < size; i++)
     {
@@ -261,24 +276,27 @@ void twinCallback(DEVICE_TWIN_UPDATE_STATE updateState,const unsigned char *payL
         return;
     }
 
-    if (root["desired"]["messageId"].success())
+    if (root["desired"].success())
     {
-        messageId = root["desired"]["messageId"];  // add "messageId":0 to the desired json 
-        Serial.printf("device Twins updated with mesageId %d \n", messageId);
-        Serial.println();
+        root["desired"].prettyPrintTo(messageId);  // add "messageId":0 to the desired json 
+        Serial.print("device Twins updated with data");
+        Serial.println(messageId);
     }
-    else if (root.containsKey("messageId"))
+    /*else if (root.containsKey("messageId"))
     {
         messageId = root["messageId"];
         Serial.printf("device Twins updated with mesageId %d", messageId);
     }
-    JsonObject &object = jsonBuff.createObject();
-    if(root.containsKey("reported")){
-        object["reported"].set("messageCount",messageCount++);
-        Serial.printf("device Twin reported \n");
-        Serial.printf("update state:\t",updateState);
-      }else{
-             Serial.printf("No device Twin reported");
-        }
-    free(temp);
+    free(temp);*/
 }
+
+void deviceReportCallback(int status_code, void* userContextCallback){
+    (void)userContextCallback;
+      Serial.printf("Device Twin reported properties update succeded with result: %d\r\n", status_code);              
+      /*if((status_code == IotHubStatusCode.OK) || (status_code == IotHubStatusCode.OK_EMPTY))
+            {
+              Serial.printf("Device Twin reported properties update succeded with result: %d\r\n", status_code);              
+            }else{
+                  Serial.printf("Device Twin reported properties update failed with result: %d\r\n", status_code);    
+              }*/  
+  }
