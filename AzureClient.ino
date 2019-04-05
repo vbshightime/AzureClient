@@ -264,7 +264,7 @@ void twinCallback(DEVICE_TWIN_UPDATE_STATE updateState,const unsigned char *payL
     if (root["desired"]["messageId"].success())
     {
         messageId = root["desired"]["messageId"];  // add "messageId":0 to the desired json 
-        Serial.printf("device Twins updated with mesageId %d /n", messageId);
+        Serial.printf("device Twins updated with mesageId %d \n", messageId);
     }
     else if (root.containsKey("messageId"))
     {
@@ -274,7 +274,8 @@ void twinCallback(DEVICE_TWIN_UPDATE_STATE updateState,const unsigned char *payL
     JsonObject &object = jsonBuff.createObject();
     if(root.containsKey("reported")){
         object["reported"].set("messageCount",messageCount++);
-        Serial.printf("device Twin reported");
+        Serial.printf("device Twin reported \n");
+        Serial.printf("update state:\t",updateState);
       }else{
              Serial.printf("No device Twin reported");
         }
